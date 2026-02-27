@@ -1,37 +1,38 @@
-import { FC, SyntheticEvent, useState, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { FC, SyntheticEvent, useState } from 'react';
 import { LoginUI } from '@ui-pages';
-import { login } from '../../services/slices/authSlice';
-import { AppDispatch, RootState } from '../../services/store';
+import { useDispatch } from '../../services/store';
+import { useNavigate } from 'react-router-dom';
+import { setAuth, setUser } from '../../services/rootSlice';
+import { loginUserApi } from '../../utils/burger-api';
+import { setCookie } from '../../utils/cookie';
 
 export const Login: FC = () => {
-  const dispatch = useDispatch<AppDispatch>();
-  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const error = useSelector((state: RootState) => state.auth.error);
-  const user = useSelector((state: RootState) => state.auth.user);
+  const [errorText, setErrorText] = useState('');
 
-  useEffect(() => {
-    if (user) {
-      navigate('/');
-    }
-  }, [user, navigate]);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const handleSubmit = (e: SyntheticEvent) => {
     e.preventDefault();
-
-    if (!email || !password) {
-      return;
-    }
-
-    dispatch(login({ email, password }));
+    setErrorText('');
+    loginUserApi({ email, password })
+      .then((data) => {
+        setCookie('accessToken', data.accessToken);
+        localStorage.setItem('refreshToken', data.refreshToken);
+        dispatch(setAuth(true));
+        dispatch(setUser(data.user));
+        navigate('/');
+      })
+      .catch((err) => {
+        setErrorText(err.message || 'Ошибка авторизации');
+      });
   };
 
   return (
     <LoginUI
-      errorText={error || ''}
+      errorText={errorText}
       email={email}
       setEmail={setEmail}
       password={password}

@@ -20,7 +20,6 @@
     "paths": {
       "@pages": ["src/pages"],
       "@components": ["src/components"],
-      "@components/protected-route": ["src/components/protected-route"],
       "@ui": ["src/components/ui"],
       "@ui-pages": ["src/components/ui/pages"],
       "@utils-types": ["src/utils/types"],

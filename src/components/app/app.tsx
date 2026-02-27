@@ -1,118 +1,134 @@
-import { useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import {
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+  useLocation,
+  useNavigate
+} from 'react-router-dom';
+
 import {
   ConstructorPage,
   Feed,
   ForgotPassword,
-  IngredientDetails,
   Login,
   NotFound404,
-  OrderDetails,
   Profile,
   ProfileOrders,
   Register,
   ResetPassword
 } from '@pages';
-import '../../index.css';
+
+import { ModalUI } from '@ui';
+import { IngredientDetails, OrderInfo, AppHeader } from '@components';
+import { Preloader } from '@ui';
+
 import styles from './app.module.css';
 
-import { AppHeader } from '../../components/app-header';
-import { ProtectedRoute } from '../../components/protected-route';
-import { PublicRoute } from '../../components/public-route';
-import { Preloader } from '@ui';
-import { Route, Routes } from 'react-router-dom';
-import { AppDispatch, RootState } from '../../services/store';
-import { fetchIngredients } from '../../services/slices/ingredientsSlice';
-import { fetchUser } from '../../services/slices/authSlice';
+import { useEffect } from 'react';
+import { useDispatch, useSelector } from '../../services/store';
+import { fetchIngredients, setAuth, setUser } from '../../services/rootSlice';
+import { getUserApi } from '../../utils/burger-api';
+import { getCookie } from '../../utils/cookie';
+
+const OnlyAuth = () => {
+  const isAuth = useSelector((state) => state.user.isAuth);
+  return isAuth ? <Outlet /> : <Navigate to='/login' replace />;
+};
+
+const OnlyUnAuth = () => {
+  const isAuth = useSelector((state) => state.user.isAuth);
+  return !isAuth ? <Outlet /> : <Navigate to='/' replace />;
+};
 
 const App = () => {
-  const dispatch = useDispatch<AppDispatch>();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const background = location.state?.background;
 
-  const isIngredientsLoading = useSelector(
-    (state: RootState) => state.ingredients.isLoading
-  );
-  const ingredientsError = useSelector(
-    (state: RootState) => state.ingredients.error
-  );
-  const authIsLoading = useSelector((state: RootState) => state.auth.isLoading);
+  const dispatch = useDispatch();
+  const { isLoading, error } = useSelector((state) => state.ingredients);
 
   useEffect(() => {
     dispatch(fetchIngredients());
-    dispatch(fetchUser());
+
+    if (getCookie('accessToken')) {
+      getUserApi()
+        .then((data) => {
+          dispatch(setAuth(true));
+          dispatch(setUser(data.user));
+        })
+        .catch(() => {
+          dispatch(setAuth(false));
+          dispatch(setUser(null));
+        });
+    }
   }, [dispatch]);
 
-  const isLoading = isIngredientsLoading || authIsLoading;
+  const handleModalClose = () => navigate(-1);
 
   return (
     <div className={styles.app}>
+      <AppHeader />
+
       {isLoading && <Preloader />}
-      {!isLoading && (
+      {error && <div className='text text_type_main-medium'>{error}</div>}
+
+      {!isLoading && !error && (
         <>
-          <AppHeader />
-          {ingredientsError && (
-            <div className={`${styles.error} text text_type_main-medium pt-4`}>
-              {ingredientsError}
-            </div>
-          )}
-          <Routes>
-            <Route path='/' element={<ConstructorPage />}>
-              <Route path='ingredients/:id' element={<IngredientDetails />} />
+          <Routes location={background || location}>
+            <Route path='/' element={<ConstructorPage />} />
+            <Route path='/feed' element={<Feed />} />
+            <Route path='/feed/:number' element={<OrderInfo />} />
+            <Route path='/ingredients/:id' element={<IngredientDetails />} />
+
+            <Route element={<OnlyUnAuth />}>
+              <Route path='/login' element={<Login />} />
+              <Route path='/register' element={<Register />} />
+              <Route path='/forgot-password' element={<ForgotPassword />} />
+              <Route path='/reset-password' element={<ResetPassword />} />
             </Route>
-            <Route path='/feed' element={<Feed />}>
-              <Route path=':id' element={<OrderDetails />} />
+
+            <Route element={<OnlyAuth />}>
+              <Route path='/profile' element={<Profile />} />
+              <Route path='/profile/orders' element={<ProfileOrders />} />
+              <Route path='/profile/orders/:number' element={<OrderInfo />} />
             </Route>
-            <Route
-              path='/login'
-              element={
-                <PublicRoute>
-                  <Login />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path='/register'
-              element={
-                <PublicRoute>
-                  <Register />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path='/forgot-password'
-              element={
-                <PublicRoute>
-                  <ForgotPassword />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path='/reset-password'
-              element={
-                <PublicRoute>
-                  <ResetPassword />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path='/profile'
-              element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path='/profile/orders'
-              element={
-                <ProtectedRoute>
-                  <ProfileOrders />
-                </ProtectedRoute>
-              }
-            >
-              <Route path=':id' element={<OrderDetails />} />
-            </Route>
+
             <Route path='*' element={<NotFound404 />} />
           </Routes>
+
+          {background && (
+            <Routes>
+              <Route
+                path='/ingredients/:id'
+                element={
+                  <ModalUI
+                    title='Детали ингредиента'
+                    onClose={handleModalClose}
+                  >
+                    <IngredientDetails />
+                  </ModalUI>
+                }
+              />
+              <Route
+                path='/feed/:number'
+                element={
+                  <ModalUI title='Детали заказа' onClose={handleModalClose}>
+                    <OrderInfo />
+                  </ModalUI>
+                }
+              />
+              <Route
+                path='/profile/orders/:number'
+                element={
+                  <ModalUI title='Детали заказа' onClose={handleModalClose}>
+                    <OrderInfo />
+                  </ModalUI>
+                }
+              />
+            </Routes>
+          )}
         </>
       )}
     </div>

@@ -1,56 +1,39 @@
-import { FC, SyntheticEvent, useState, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { FC, SyntheticEvent, useState } from 'react';
 import { RegisterUI } from '@ui-pages';
-import { register } from '../../services/slices/authSlice';
-import { AppDispatch, RootState } from '../../services/store';
+import { useDispatch } from '../../services/store';
+import { useNavigate } from 'react-router-dom';
+import { setAuth, setUser } from '../../services/rootSlice';
+import { registerUserApi } from '../../utils/burger-api';
+import { setCookie } from '../../utils/cookie';
 
 export const Register: FC = () => {
-  const dispatch = useDispatch<AppDispatch>();
-  const navigate = useNavigate();
   const [userName, setUserName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const error = useSelector((state: RootState) => state.auth.error);
-  const user = useSelector((state: RootState) => state.auth.user);
-  const isLoading = useSelector((state: RootState) => state.auth.isLoading);
+  const [errorText, setErrorText] = useState('');
 
-  useEffect(() => {
-    if (user) {
-      navigate('/');
-    }
-  }, [user, navigate]);
-
-  const getErrorText = (): string => {
-    if (password.length > 0 && password.length < 6) {
-      return 'Пароль должен содержать минимум 6 символов';
-    }
-    return error || '';
-  };
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const handleSubmit = (e: SyntheticEvent) => {
     e.preventDefault();
-
-    if (!userName || !email || !password) {
-      return;
-    }
-
-    if (password.length < 6) {
-      return;
-    }
-
-    dispatch(
-      register({
-        name: userName,
-        email,
-        password
+    setErrorText('');
+    registerUserApi({ name: userName, email, password })
+      .then((data) => {
+        setCookie('accessToken', data.accessToken);
+        localStorage.setItem('refreshToken', data.refreshToken);
+        dispatch(setAuth(true));
+        dispatch(setUser(data.user));
+        navigate('/');
       })
-    );
+      .catch((err) => {
+        setErrorText(err.message || 'Ошибка регистрации');
+      });
   };
 
   return (
     <RegisterUI
-      errorText={getErrorText()}
+      errorText={errorText}
       email={email}
       userName={userName}
       password={password}

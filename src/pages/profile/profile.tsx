@@ -1,13 +1,13 @@
 import { ProfileUI } from '@ui-pages';
 import { FC, SyntheticEvent, useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { RootState, AppDispatch } from '../../services/store';
-import { updateUser } from '../../services/slices/authSlice';
+import { useSelector, useDispatch } from '../../services/store';
+import { setUser } from '../../services/rootSlice';
+import { updateUserApi } from '../../utils/burger-api';
 
 export const Profile: FC = () => {
-  const dispatch = useDispatch<AppDispatch>();
-  const user = useSelector((state: RootState) => state.auth.user);
-  const isLoading = useSelector((state: RootState) => state.auth.isLoading);
+  const dispatch = useDispatch();
+  const user = useSelector((state) => state.user.data);
+  const [errorText, setErrorText] = useState('');
 
   const [formValue, setFormValue] = useState({
     name: user?.name || '',
@@ -16,11 +16,11 @@ export const Profile: FC = () => {
   });
 
   useEffect(() => {
-    setFormValue({
+    setFormValue((prevState) => ({
+      ...prevState,
       name: user?.name || '',
-      email: user?.email || '',
-      password: ''
-    });
+      email: user?.email || ''
+    }));
   }, [user]);
 
   const isFormChanged =
@@ -30,15 +30,14 @@ export const Profile: FC = () => {
 
   const handleSubmit = (e: SyntheticEvent) => {
     e.preventDefault();
-    if (formValue.name && formValue.email) {
-      dispatch(
-        updateUser({
-          name: formValue.name,
-          email: formValue.email,
-          password: formValue.password
-        })
-      );
-    }
+    setErrorText('');
+    updateUserApi(formValue)
+      .then((data) => {
+        dispatch(setUser(data.user));
+      })
+      .catch((err) => {
+        setErrorText(err.message || 'Ошибка сохранения');
+      });
   };
 
   const handleCancel = (e: SyntheticEvent) => {
@@ -64,6 +63,7 @@ export const Profile: FC = () => {
       handleCancel={handleCancel}
       handleSubmit={handleSubmit}
       handleInputChange={handleInputChange}
+      updateUserError={errorText}
     />
   );
 };
