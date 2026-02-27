@@ -33,12 +33,19 @@ import { getCookie } from '../../utils/cookie';
 
 const OnlyAuth = () => {
   const isAuth = useSelector((state) => state.user.isAuth);
-  return isAuth ? <Outlet /> : <Navigate to='/login' replace />;
+  const location = useLocation();
+  return isAuth ? (
+    <Outlet />
+  ) : (
+    <Navigate to='/login' state={{ from: location }} replace />
+  );
 };
 
 const OnlyUnAuth = () => {
   const isAuth = useSelector((state) => state.user.isAuth);
-  return !isAuth ? <Outlet /> : <Navigate to='/' replace />;
+  const location = useLocation();
+  const from = location.state?.from?.pathname || '/';
+  return !isAuth ? <Outlet /> : <Navigate to={from} replace />;
 };
 
 const App = () => {
