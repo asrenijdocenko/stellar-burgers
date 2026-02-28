@@ -15,6 +15,7 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 
 import { getOrdersApi } from '../utils/burger-api';
+import { deleteCookie } from '../utils/cookie';
 
 export const fetchUserOrders = createAsyncThunk(
   'root/fetchUserOrders',
@@ -39,10 +40,11 @@ export const fetchOrderByNumber = createAsyncThunk(
   }
 );
 
-export const logoutUser = createAsyncThunk(
-  'root/logoutUser',
-  async () => await logoutApi()
-);
+export const logoutUser = createAsyncThunk('root/logoutUser', async () => {
+  await logoutApi();
+  localStorage.removeItem('refreshToken');
+  deleteCookie('accessToken');
+});
 
 interface RootStateType {
   ingredients: {
@@ -65,6 +67,7 @@ interface RootStateType {
   user: {
     isAuth: boolean;
     data: TUser | null;
+    isAuthChecked: boolean;
   };
 }
 
@@ -88,6 +91,7 @@ const initialState: RootStateType = {
   },
   user: {
     isAuth: false,
+    isAuthChecked: false,
     data: null
   }
 };
@@ -96,6 +100,9 @@ const rootSlice = createSlice({
   name: 'root',
   initialState,
   reducers: {
+    setAuthChecked(state, action: PayloadAction<boolean>) {
+      state.user.isAuthChecked = action.payload;
+    },
     setOrderNumber(state, action: PayloadAction<number | null>) {
       state.orders.orderNumber = action.payload;
     },
@@ -194,7 +201,8 @@ export const {
   setAuth,
   setUser,
   setCurrentOrder,
-  setOrderLoading
+  setOrderLoading,
+  setAuthChecked
 } = rootSlice.actions;
 
 export default rootSlice.reducer;

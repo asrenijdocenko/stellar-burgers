@@ -27,13 +27,24 @@ import styles from './app.module.css';
 
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from '../../services/store';
-import { fetchIngredients, setAuth, setUser } from '../../services/rootSlice';
+import {
+  fetchIngredients,
+  setAuth,
+  setAuthChecked,
+  setUser
+} from '../../services/rootSlice';
 import { getUserApi } from '../../utils/burger-api';
 import { getCookie } from '../../utils/cookie';
 
 const OnlyAuth = () => {
   const isAuth = useSelector((state) => state.user.isAuth);
+  const isAuthChecked = useSelector((state) => state.user.isAuthChecked);
   const location = useLocation();
+
+  if (!isAuthChecked) {
+    return <Preloader />;
+  }
+
   return isAuth ? (
     <Outlet />
   ) : (
@@ -68,7 +79,12 @@ const App = () => {
         .catch(() => {
           dispatch(setAuth(false));
           dispatch(setUser(null));
+        })
+        .finally(() => {
+          dispatch(setAuthChecked(true));
         });
+    } else {
+      dispatch(setAuthChecked(true));
     }
   }, [dispatch]);
 
