@@ -2,9 +2,7 @@ import { FC, SyntheticEvent, useState } from 'react';
 import { LoginUI } from '@ui-pages';
 import { useDispatch } from '../../services/store';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { setAuth, setUser } from '../../services/rootSlice';
-import { loginUserApi } from '../../utils/burger-api';
-import { setCookie } from '../../utils/cookie';
+import { loginUser } from '../../services/slices/userSlice';
 
 export const Login: FC = () => {
   const [email, setEmail] = useState('');
@@ -19,12 +17,9 @@ export const Login: FC = () => {
   const handleSubmit = (e: SyntheticEvent) => {
     e.preventDefault();
     setErrorText('');
-    loginUserApi({ email, password })
-      .then((data) => {
-        setCookie('accessToken', data.accessToken);
-        localStorage.setItem('refreshToken', data.refreshToken);
-        dispatch(setAuth(true));
-        dispatch(setUser(data.user));
+    dispatch(loginUser({ email, password }))
+      .unwrap()
+      .then(() => {
         navigate(from, { replace: true });
       })
       .catch((err) => {

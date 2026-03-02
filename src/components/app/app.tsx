@@ -27,13 +27,8 @@ import styles from './app.module.css';
 
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from '../../services/store';
-import {
-  fetchIngredients,
-  setAuth,
-  setAuthChecked,
-  setUser
-} from '../../services/rootSlice';
-import { getUserApi } from '../../utils/burger-api';
+import { fetchIngredients } from '../../services/slices/ingredientsSlice';
+import { fetchUser, setAuthChecked } from '../../services/slices/userSlice';
 import { getCookie } from '../../utils/cookie';
 
 const OnlyAuth = () => {
@@ -41,9 +36,7 @@ const OnlyAuth = () => {
   const isAuthChecked = useSelector((state) => state.user.isAuthChecked);
   const location = useLocation();
 
-  if (!isAuthChecked) {
-    return <Preloader />;
-  }
+  if (!isAuthChecked) return <Preloader />;
 
   return isAuth ? (
     <Outlet />
@@ -54,8 +47,12 @@ const OnlyAuth = () => {
 
 const OnlyUnAuth = () => {
   const isAuth = useSelector((state) => state.user.isAuth);
+  const isAuthChecked = useSelector((state) => state.user.isAuthChecked);
   const location = useLocation();
   const from = location.state?.from?.pathname || '/';
+
+  if (!isAuthChecked) return <Preloader />;
+
   return !isAuth ? <Outlet /> : <Navigate to={from} replace />;
 };
 
@@ -65,24 +62,14 @@ const App = () => {
   const background = location.state?.background;
 
   const dispatch = useDispatch();
-  const { isLoading, error } = useSelector((state) => state.ingredients);
+  const isLoading = useSelector((state) => state.ingredients.isLoading);
+  const error = useSelector((state) => state.ingredients.error);
 
   useEffect(() => {
     dispatch(fetchIngredients());
 
     if (getCookie('accessToken')) {
-      getUserApi()
-        .then((data) => {
-          dispatch(setAuth(true));
-          dispatch(setUser(data.user));
-        })
-        .catch(() => {
-          dispatch(setAuth(false));
-          dispatch(setUser(null));
-        })
-        .finally(() => {
-          dispatch(setAuthChecked(true));
-        });
+      dispatch(fetchUser()).finally(() => dispatch(setAuthChecked(true)));
     } else {
       dispatch(setAuthChecked(true));
     }
@@ -93,66 +80,55 @@ const App = () => {
   return (
     <div className={styles.app}>
       <AppHeader />
+      <Routes location={background || location}>
+        <Route path='/' element={<ConstructorPage />} />
+        <Route path='/feed' element={<Feed />} />
+        <Route path='/feed/:number' element={<OrderInfo />} />
+        <Route path='/ingredients/:id' element={<IngredientDetails />} />
 
-      {isLoading && <Preloader />}
-      {error && <div className='text text_type_main-medium'>{error}</div>}
+        <Route element={<OnlyUnAuth />}>
+          <Route path='/login' element={<Login />} />
+          <Route path='/register' element={<Register />} />
+          <Route path='/forgot-password' element={<ForgotPassword />} />
+          <Route path='/reset-password' element={<ResetPassword />} />
+        </Route>
 
-      {!isLoading && !error && (
-        <>
-          <Routes location={background || location}>
-            <Route path='/' element={<ConstructorPage />} />
-            <Route path='/feed' element={<Feed />} />
-            <Route path='/feed/:number' element={<OrderInfo />} />
-            <Route path='/ingredients/:id' element={<IngredientDetails />} />
+        <Route element={<OnlyAuth />}>
+          <Route path='/profile' element={<Profile />} />
+          <Route path='/profile/orders' element={<ProfileOrders />} />
+          <Route path='/profile/orders/:number' element={<OrderInfo />} />
+        </Route>
 
-            <Route element={<OnlyUnAuth />}>
-              <Route path='/login' element={<Login />} />
-              <Route path='/register' element={<Register />} />
-              <Route path='/forgot-password' element={<ForgotPassword />} />
-              <Route path='/reset-password' element={<ResetPassword />} />
-            </Route>
+        <Route path='*' element={<NotFound404 />} />
+      </Routes>
 
-            <Route element={<OnlyAuth />}>
-              <Route path='/profile' element={<Profile />} />
-              <Route path='/profile/orders' element={<ProfileOrders />} />
-              <Route path='/profile/orders/:number' element={<OrderInfo />} />
-            </Route>
-
-            <Route path='*' element={<NotFound404 />} />
-          </Routes>
-
-          {background && (
-            <Routes>
-              <Route
-                path='/ingredients/:id'
-                element={
-                  <ModalUI
-                    title='Детали ингредиента'
-                    onClose={handleModalClose}
-                  >
-                    <IngredientDetails />
-                  </ModalUI>
-                }
-              />
-              <Route
-                path='/feed/:number'
-                element={
-                  <ModalUI title='Детали заказа' onClose={handleModalClose}>
-                    <OrderInfo />
-                  </ModalUI>
-                }
-              />
-              <Route
-                path='/profile/orders/:number'
-                element={
-                  <ModalUI title='Детали заказа' onClose={handleModalClose}>
-                    <OrderInfo />
-                  </ModalUI>
-                }
-              />
-            </Routes>
-          )}
-        </>
+      {background && (
+        <Routes>
+          <Route
+            path='/ingredients/:id'
+            element={
+              <ModalUI title='Детали ингредиента' onClose={handleModalClose}>
+                <IngredientDetails />
+              </ModalUI>
+            }
+          />
+          <Route
+            path='/feed/:number'
+            element={
+              <ModalUI title='Детали заказа' onClose={handleModalClose}>
+                <OrderInfo />
+              </ModalUI>
+            }
+          />
+          <Route
+            path='/profile/orders/:number'
+            element={
+              <ModalUI title='Детали заказа' onClose={handleModalClose}>
+                <OrderInfo />
+              </ModalUI>
+            }
+          />
+        </Routes>
       )}
     </div>
   );

@@ -5,19 +5,21 @@ import { useSelector, useDispatch } from '../../services/store';
 import { useNavigate } from 'react-router-dom';
 import {
   clearConstructor,
+  setBun
+} from '../../services/slices/constructorSlice';
+import {
   setCurrentOrder,
-  setOrderLoading,
-  setOrderNumber
-} from '../../services/rootSlice';
+  setOrderLoading
+} from '../../services/slices/feedsSlice';
 import { orderBurgerApi } from '../../utils/burger-api';
 
 export const BurgerConstructor: FC = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const constructorItems = useSelector((state) => state.constructor);
-  const orderRequest = useSelector((state) => state.orders.isLoading);
-  const orderModalData = useSelector((state) => state.orders.currentOrder);
+  const constructorItems = useSelector((state) => state.burgerConstructor);
+  const orderRequest = useSelector((state) => state.feeds.isLoading);
+  const orderModalData = useSelector((state) => state.feeds.currentOrder);
   const isAuth = useSelector((state) => state.user.isAuth);
 
   const onOrderClick = () => {
@@ -30,7 +32,9 @@ export const BurgerConstructor: FC = () => {
 
     const ingredientIds = [
       constructorItems.bun._id,
-      ...constructorItems.ingredients.map((item) => item._id),
+      ...constructorItems.ingredients.map(
+        (item: TConstructorIngredient) => item._id
+      ),
       constructorItems.bun._id
     ];
 

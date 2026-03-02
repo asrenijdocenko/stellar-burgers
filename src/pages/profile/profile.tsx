@@ -1,13 +1,12 @@
 import { ProfileUI } from '@ui-pages';
 import { FC, SyntheticEvent, useEffect, useState } from 'react';
 import { useSelector, useDispatch } from '../../services/store';
-import { setUser } from '../../services/rootSlice';
-import { updateUserApi } from '../../utils/burger-api';
+import { updateUser } from '../../services/slices/userSlice';
 
 export const Profile: FC = () => {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user.data);
-  const [errorText, setErrorText] = useState('');
+  const errorText = useSelector((state) => state.user.error || '');
 
   const [formValue, setFormValue] = useState({
     name: user?.name || '',
@@ -30,14 +29,7 @@ export const Profile: FC = () => {
 
   const handleSubmit = (e: SyntheticEvent) => {
     e.preventDefault();
-    setErrorText('');
-    updateUserApi(formValue)
-      .then((data) => {
-        dispatch(setUser(data.user));
-      })
-      .catch((err) => {
-        setErrorText(err.message || 'Ошибка сохранения');
-      });
+    dispatch(updateUser(formValue));
   };
 
   const handleCancel = (e: SyntheticEvent) => {

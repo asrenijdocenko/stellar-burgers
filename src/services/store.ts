@@ -4,7 +4,7 @@ import {
   useSelector as useReduxSelector,
   TypedUseSelectorHook
 } from 'react-redux';
-import rootReducer from './rootSlice';
+import { rootReducer } from './rootReducer';
 
 const store = configureStore({
   reducer: rootReducer,

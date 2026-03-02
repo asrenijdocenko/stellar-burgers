@@ -17,7 +17,7 @@ const defaultFeed: TOrdersData = {
 
 export const FeedInfo: FC = () => {
   const feed: TOrdersData = useSelector(
-    (state) => state.orders.feed ?? defaultFeed
+    (state) => state.feeds.feed ?? defaultFeed
   );
   const orders = feed.orders;
 

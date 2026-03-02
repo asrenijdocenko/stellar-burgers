@@ -2,9 +2,7 @@ import { FC, SyntheticEvent, useState } from 'react';
 import { RegisterUI } from '@ui-pages';
 import { useDispatch } from '../../services/store';
 import { useNavigate } from 'react-router-dom';
-import { setAuth, setUser } from '../../services/rootSlice';
-import { registerUserApi } from '../../utils/burger-api';
-import { setCookie } from '../../utils/cookie';
+import { registerUser } from '../../services/slices/userSlice';
 
 export const Register: FC = () => {
   const [userName, setUserName] = useState('');
@@ -18,12 +16,9 @@ export const Register: FC = () => {
   const handleSubmit = (e: SyntheticEvent) => {
     e.preventDefault();
     setErrorText('');
-    registerUserApi({ name: userName, email, password })
-      .then((data) => {
-        setCookie('accessToken', data.accessToken);
-        localStorage.setItem('refreshToken', data.refreshToken);
-        dispatch(setAuth(true));
-        dispatch(setUser(data.user));
+    dispatch(registerUser({ name: userName, email, password }))
+      .unwrap()
+      .then(() => {
         navigate('/');
       })
       .catch((err) => {
